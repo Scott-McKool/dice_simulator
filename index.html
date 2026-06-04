@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dice Probability Chart</title>
+    <title>Dice Probability Visualizer</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 
 <body>
@@ -39,8 +40,8 @@
 
     <div id="explanation">Adjust the parameters above to see the probabilities.</div>
     
-    <!--<div id="loading"><span class="spinner"></span>Calculating exact odds...</div>
--->
+    <div id="loading"><span class="spinner"></span>Calculating exact odds...</div>
+
     <div id="chart-container">
     </div>
 
@@ -48,6 +49,212 @@
         <button id="download-btn">Download Chart as SVG</button>
     </div>
 </div>
+
+<script>
+
+    function processRoll() {
+        const explanationEl = document.getElementById('explanation');
+        const chartContainer = document.getElementById('chart-container');
+        const downloadBtn = document.getElementById('download-btn');
+        const loadingEl = document.getElementById('loading');
+
+        // grab values from inputs
+        const numDice = parseInt(document.getElementById('num-dice').value, 10);
+        const numSides = parseInt(document.getElementById('num-sides').value, 10);
+        const keepDropType = document.getElementById('keep-drop-type').value;
+        const keepDropVal = parseInt(document.getElementById('keep-drop-val').value, 10) || 0;
+
+        // set init values for elements
+        chartContainer.innerHTML = '';
+        downloadBtn.style.display = 'none';
+        explanationEl.className = '';
+        explanationEl.textContent = '';
+        loadingEl.style.display = 'none';
+
+        // validate inputs
+        if (isNaN(numDice) || numDice < 1 || isNaN(numSides) || numSides < 2) {
+            explanationEl.className = 'error';
+            explanationEl.textContent = 'You must roll at least 1 die with at least 2 sides.';
+            return;
+        }
+
+        let translation = `Roll ${numDice} ${numSides}-sided dice`;
+        let keepCount = numDice;
+        let sortAscending = false; 
+
+        // Apply rules only if a rule type is selected and the amount is greater than 0
+        if (keepDropType !== "" && keepDropVal > 0) {
+            if (keepDropType === 'kh') {
+                keepCount = Math.min(numDice, keepDropVal);
+                translation += `, keep the highest ${keepCount}`;
+            } else if (keepDropType === 'kl') {
+                keepCount = Math.min(numDice, keepDropVal);
+                translation += `, keep the lowest ${keepCount}`;
+                sortAscending = true; 
+            }
+        }
+
+        translation += ".";
+
+        console.log(translation)
+
+        // Show Loading
+        loadingEl.style.display = 'block';
+
+
+        // Do the actual calculation
+        setTimeout(() => {
+            let data = [];
+            const isStandardRoll = (keepCount === numDice);
+            
+            if (numDice > 2000) {
+                explanationEl.className = 'error';
+                explanationEl.textContent = `Error: Cannot roll more than 2,000 dice at once.`;
+                loadingEl.style.display = 'none';
+                return;
+            }
+
+            // --- STRATEGY 1: Dynamic Programming (Fast Exact Math for Standard Rolls) ---
+            if (isStandardRoll) {
+                let currentProb = { 0: 1.0 }; 
+                
+                for (let i = 0; i < numDice; i++) {
+                    let nextProb = {};
+                    for (let sum in currentProb) {
+                        let prob = currentProb[sum];
+                        for (let face = 1; face <= numSides; face++) {
+                            let nextSum = parseInt(sum) + face;
+                            nextProb[nextSum] = (nextProb[nextSum] || 0) + (prob / numSides);
+                        }
+                    }
+                    currentProb = nextProb;
+                }
+
+                data = Object.keys(currentProb).map(key => {
+                    return { 
+                        sum: parseInt(key, 10), 
+                        percent: currentProb[key] * 100 
+                    };
+                });
+            } 
+
+
+            // Sort data by sum for rendering
+            data.sort((a, b) => a.sum - b.sum);
+
+            // Hide loading spinner
+            loadingEl.style.display = 'none';
+            explanationEl.textContent = translation;
+
+            renderChart(data);
+            downloadBtn.style.display = 'block';
+        }, 50);
+    }
+
+    function renderChart(data) {
+        const margin = {top: 40, right: 20, bottom: 50, left: 60};
+        const width = 800 - margin.left - margin.right;
+        const height = 400 - margin.top - margin.bottom;
+
+        const svg = d3.select("#chart-container")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr("xmlns", "http://www.w3.org/2000/svg") 
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+
+        svg.append("rect")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .attr("transform", `translate(${-margin.left},${-margin.top})`)
+            .attr("fill", "#ffffff")
+            .style("z-index", -1);
+
+        const x = d3.scaleBand()
+            .domain(data.map(d => d.sum))
+            .range([0, width])
+            .padding(0.2);
+
+        const y = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.percent) * 1.1])
+            .range([height, 0]);
+
+        const xAxis = d3.axisBottom(x);
+        if (data.length > 30) {
+            xAxis.tickValues(x.domain().filter((d, i) => i % Math.ceil(data.length / 15) === 0));
+        }
+
+        svg.append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(xAxis)
+            .selectAll("text")
+            .style("font-size", "12px");
+
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "14px")
+            .style("font-weight", "bold")
+            .text("Total Sum");
+
+        svg.append("g")
+            .call(d3.axisLeft(y).ticks(6).tickFormat(d => d + "%"))
+            .selectAll("text")
+            .style("font-size", "12px");
+
+        svg.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 15)
+            .attr("x", 0 - (height / 2))
+            .attr("text-anchor", "middle")
+            .style("font-size", "14px")
+            .style("font-weight", "bold")
+            .text("Probability (%)");
+
+        svg.selectAll(".bar")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", d => x(d.sum))
+            .attr("y", d => y(d.percent))
+            .attr("width", x.bandwidth())
+            .attr("height", d => height - y(d.percent))
+            .attr("fill", "#4a90e2");
+
+        if (data.length <= 30) {
+            svg.selectAll(".label")
+                .data(data)
+                .enter()
+                .append("text")
+                .attr("x", d => x(d.sum) + x.bandwidth() / 2)
+                .attr("y", d => y(d.percent) - 5)
+                .attr("text-anchor", "middle")
+                .style("font-size", "10px")
+                .style("fill", "#333")
+                .text(d => d.percent < 1 ? d.percent.toFixed(2) + "%" : d.percent.toFixed(1) + "%");
+        }
+    }
+
+
+
+    document.getElementById('calc-btn').addEventListener('click', processRoll);
+    
+    //document.getElementById('download-btn').addEventListener('click', downloadSVG);
+
+    // allow pressing "Enter" in any of the input fields to calculate
+    const inputs = document.querySelectorAll('.controls-row input, .controls-row select');
+    inputs.forEach(input => {
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                processRoll();
+            }
+        });
+    });
+</script>
+
 
 </body>
 
