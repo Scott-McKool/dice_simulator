@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dice Probability Chart</title>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>Dice Probability Visualizer</h1>
+    
+    <div class="controls-row">
+        <div class="input-group">
+
+            <label for="num-dice">Number of dice: </label>
+            <input type="number" id="num-dice" min="1" value="4">
+
+            <label for="num-sides">Number of sides:</label>
+            <input type="number" id="num-sides" min="2" value="6">
+        </div>
+
+        <div class="input-group">
+
+            <label for="keep-drop-type">Keep</label>
+            <select id="keep-drop-type">
+                <option value="" selected>N/A</option>
+                <option value="kh" >Highest</option>
+                <option value="kl">Lowest</option>
+            </select>
+
+            <label for="keep-drop-val">Amount</label>
+            <input type="number" id="keep-drop-val" min="0" value="3">
+        </div>
+
+        <button id="calc-btn">Calculate</button> 
+    </div>
+
+    <div id="explanation">Adjust the parameters above to see the probabilities.</div>
+    
+    <!--<div id="loading"><span class="spinner"></span>Calculating exact odds...</div>
+-->
+    <div id="chart-container">
+    </div>
+
+    <div class="bottom-controls">
+        <button id="download-btn">Download Chart as SVG</button>
+    </div>
+</div>
+
+</body>
+
+</html>
