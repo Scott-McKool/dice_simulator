@@ -51,6 +51,9 @@
 </div>
 
 <script>
+    const EXACT_PERMUTATION_LIMIT = 1000000; 
+    const MONTE_CARLO_SAMPLES = 150000;      
+
 
     function processRoll() {
         const explanationEl = document.getElementById('explanation');
@@ -136,7 +139,56 @@
                         percent: currentProb[key] * 100 
                     };
                 });
-            } 
+            } else {
+                // --- STRATEGY 2: Keep/Drop Logistics ---
+                const permutations = Math.pow(numSides, numDice);
+
+                if (permutations <= EXACT_PERMUTATION_LIMIT) {
+                    // 2A: Exact Recursion (If pool is small enough)
+                    const frequencies = {};
+                    let totalPerms = 0;
+
+                    function iterateRolls(diceIndex, currentRolls) {
+                        if (diceIndex === numDice) {
+                            let sorted = [...currentRolls].sort((a, b) => sortAscending ? a - b : b - a);
+                            let kept = sorted.slice(0, keepCount);
+                            let sum = kept.reduce((a, b) => a + b, 0);
+                            frequencies[sum] = (frequencies[sum] || 0) + 1;
+                            totalPerms++;
+                            return;
+                        }
+                        for (let i = 1; i <= numSides; i++) {
+                            currentRolls[diceIndex] = i;
+                            iterateRolls(diceIndex + 1, currentRolls);
+                        }
+                    }
+                    iterateRolls(0, new Array(numDice));
+
+                    data = Object.keys(frequencies).map(key => {
+                        return { sum: parseInt(key, 10), percent: (frequencies[key] / totalPerms) * 100 };
+                    });
+                    translation += " (Calculated Exactly)";
+                } 
+                else {
+                    // 2B: Monte Carlo Simulation (If pool is too large)
+                    const frequencies = {};
+                    for (let i = 0; i < MONTE_CARLO_SAMPLES; i++) {
+                        let rolls = [];
+                        for (let d = 0; d < numDice; d++) {
+                            rolls.push(Math.floor(Math.random() * numSides) + 1);
+                        }
+                        rolls.sort((a, b) => sortAscending ? a - b : b - a);
+                        let kept = rolls.slice(0, keepCount);
+                        let sum = kept.reduce((a, b) => a + b, 0);
+                        frequencies[sum] = (frequencies[sum] || 0) + 1;
+                    }
+
+                    data = Object.keys(frequencies).map(key => {
+                        return { sum: parseInt(key, 10), percent: (frequencies[key] / MONTE_CARLO_SAMPLES) * 100 };
+                    });
+                    translation += ` (Approximated via ${MONTE_CARLO_SAMPLES.toLocaleString()} simulated rolls)`;
+                }
+            }
 
 
             // Sort data by sum for rendering
