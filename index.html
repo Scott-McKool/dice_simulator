@@ -290,11 +290,52 @@
         }
     }
 
+    function downloadSVG() {
+        const svgElement = document.querySelector("#chart-container svg");
+        if (!svgElement) return;
+
+        const cleanTitle = document.getElementById('explanation').textContent.split(' (')[0];
+        
+        const titleText = d3.select(svgElement).select("g").append("text")
+            .attr("x", 370) 
+            .attr("y", -15)
+            .attr("text-anchor", "middle")
+            .style("font-size", "18px")
+            .style("font-weight", "bold")
+            .text(cleanTitle);
+
+        const serializer = new XMLSerializer();
+        let svgString = serializer.serializeToString(svgElement);
+
+        titleText.remove();
+
+        const blob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+
+        // Generate filename based on inputs
+        const numDice = document.getElementById('num-dice').value;
+        const numSides = document.getElementById('num-sides').value;
+        const keepType = document.getElementById('keep-drop-type').value;
+        const keepVal = document.getElementById('keep-drop-val').value;
+
+        let filename = `${numDice}d${numSides}`;
+        if (keepType && keepVal > 0) filename += `${keepType}${keepVal}`;
+
+        const downloadLink = document.createElement("a");
+        downloadLink.href = url;
+        downloadLink.download = `dice_probability_${filename}.svg`;
+        
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
 
 
     document.getElementById('calc-btn').addEventListener('click', processRoll);
     
-    //document.getElementById('download-btn').addEventListener('click', downloadSVG);
+    document.getElementById('download-btn').addEventListener('click', downloadSVG);
 
     // allow pressing "Enter" in any of the input fields to calculate
     const inputs = document.querySelectorAll('.controls-row input, .controls-row select');
