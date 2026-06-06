@@ -5,6 +5,180 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dice Probability Visualizer</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+        <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --primary: #4a90e2;
+            --primary-hover: #357ab8;
+            --card-bg: #ffffff;
+            --border: #e0e0e0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 2rem;
+            margin: 0;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- NEW: Form Controls Layout --- */
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 1.5rem;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .input-group input, .input-group select {
+            padding: 10px;
+            font-size: 1.1rem;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--primary);
+        }
+
+        .input-group input[type="number"] {
+            width: 80px;
+        }
+
+        .input-group select {
+            width: 140px;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+            height: 46px; /* Aligns visually with the input boxes */
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+        /* --------------------------------- */
+
+        #explanation {
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            min-height: 1.5rem;
+            color: #555;
+            font-style: italic;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            font-size: 1.2rem;
+            color: var(--primary);
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(74, 144, 226, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #d9534f !important;
+            font-weight: bold;
+        }
+
+        #chart-container {
+            width: 100%;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        svg {
+            font-family: sans-serif;
+        }
+
+        .bar {
+            fill: var(--primary);
+            transition: fill 0.2s;
+        }
+
+        .bar:hover {
+            fill: var(--primary-hover);
+        }
+
+        .bottom-controls {
+            display: flex;
+            justify-content: center;
+        }
+
+        #download-btn {
+            background-color: #2e7d32;
+            display: none;
+        }
+
+        #download-btn:hover {
+            background-color: #1b5e20;
+        }
+    </style>
 </head>
 
 <body>
@@ -17,6 +191,9 @@
 
             <label for="num-dice">Number of dice: </label>
             <input type="number" id="num-dice" min="1" value="4">
+        </div>
+
+        <div class="input-group">
 
             <label for="num-sides">Number of sides:</label>
             <input type="number" id="num-sides" min="2" value="6">
@@ -30,10 +207,14 @@
                 <option value="kh" >Highest</option>
                 <option value="kl">Lowest</option>
             </select>
+       </div>
+
+        <div class="input-group">
 
             <label for="keep-drop-val">Amount</label>
             <input type="number" id="keep-drop-val" min="0" value="3">
         </div>
+
 
         <button id="calc-btn">Calculate</button> 
     </div>
